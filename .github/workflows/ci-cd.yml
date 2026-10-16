@@ -57,23 +57,3 @@ jobs:
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/expense-tracker-backend:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend:${{ github.sha }}
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: build-scan-push
-    runs-on: ubuntu-latest
-    permissions: {contents: read, packages: read}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
-      - name: Configure kubectl
-        env: {KUBE_CONFIG_DATA: '${{ secrets.KUBE_CONFIG_DATA }}'}
-        run: |
-          mkdir -p ~/.kube
-          echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
-      - name: Deploy with Helm
-        run: |
-          helm upgrade --install expense-tracker ./helm/expense-tracker -n expense-tracker --create-namespace \
-            --set backend.tag=${{ github.sha }} \
-            --set frontend.tag=${{ github.sha }} \
-            --set backend.image=ghcr.io/${{ github.repository_owner }}/expense-tracker-backend \
-            --set frontend.image=ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend
