@@ -88,7 +88,10 @@ Locally, you can also capture the scan:
 ```powershell
 docker build -t expense-tracker-backend:scan ./backend
 docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 expense-tracker-backend:scan
+echo "trivy exit=$LASTEXITCODE"
 ```
+
+Run each line on its own. Do not paste the lines as one line. Expected result: `trivy exit=0`.
 
 Capture the output. The exit code must be 0. Use the GitHub run for the official evidence.
 
