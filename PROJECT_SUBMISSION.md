@@ -6,18 +6,18 @@
 
 This file maps each module in `GRADING.md` to its evidence. Each module section lists the code, the verification steps, and the screenshots.
 
-| Module | Topic | Evidence |
-|--------|-------|----------|
-| M1 | Application | [Section M1](#m1--application-frontend--backend--database) |
-| M2 | Testing | [Section M2](#m2--testing-pytest) |
-| M3 | Git and GitHub | [Section M3](#m3--git-and-github) |
-| M4 | Docker | [Section M4](#m4--docker) |
-| M5 | CI/CD | [Section M5](#m5--cicd-github-actions) |
-| M6 | DevSecOps (Trivy) | [Section M6](#m6--devsecops-trivy) |
-| M7 | Terraform (AWS) | [Section M7](#m7--terraform-aws-vpc-and-eks) |
-| M8 | Kubernetes and Helm | [Section M8](#m8--kubernetes-and-helm) |
-| M9 | Observability | [Section M9](#m9--observability-prometheus-and-grafana) |
-| M10 | Documentation and demo | [Section M10](#m10--documentation-and-live-demo) |
+| Module | Topic                  | Evidence                                                   |
+| ------ | ---------------------- | ---------------------------------------------------------- |
+| M1     | Application            | [Section M1](#m1--application-frontend--backend--database) |
+| M2     | Testing                | [Section M2](#m2--testing-pytest)                          |
+| M3     | Git and GitHub         | [Section M3](#m3--git-and-github)                          |
+| M4     | Docker                 | [Section M4](#m4--docker)                                  |
+| M5     | CI/CD                  | [Section M5](#m5--cicd-github-actions)                     |
+| M6     | DevSecOps (Trivy)      | [Section M6](#m6--devsecops-trivy)                         |
+| M7     | Terraform (AWS)        | [Section M7](#m7--terraform-aws-vpc-and-eks)               |
+| M8     | Kubernetes and Helm    | [Section M8](#m8--kubernetes-and-helm)                     |
+| M9     | Observability          | [Section M9](#m9--observability-prometheus-and-grafana)    |
+| M10    | Documentation and demo | [Section M10](#m10--documentation-and-live-demo)           |
 
 ---
 
@@ -25,17 +25,17 @@ This file maps each module in `GRADING.md` to its evidence. Each module section 
 
 **Endpoints** (`backend/app/main.py`, prefix `/api/expenses`):
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/health` | Liveness check |
-| GET | `/ready` | Readiness check (database access) |
-| GET | `/metrics` | Prometheus metrics |
-| GET | `/api/expenses` | List expenses, newest first |
-| GET | `/api/expenses/stats` | Totals by category |
-| GET | `/api/expenses/{id}` | Read one expense |
-| POST | `/api/expenses` | Create an expense |
-| PUT | `/api/expenses/{id}` | Update an expense |
-| DELETE | `/api/expenses/{id}` | Delete an expense |
+| Method | Path                  | Purpose                           |
+| ------ | --------------------- | --------------------------------- |
+| GET    | `/health`             | Liveness check                    |
+| GET    | `/ready`              | Readiness check (database access) |
+| GET    | `/metrics`            | Prometheus metrics                |
+| GET    | `/api/expenses`       | List expenses, newest first       |
+| GET    | `/api/expenses/stats` | Totals by category                |
+| GET    | `/api/expenses/{id}`  | Read one expense                  |
+| POST   | `/api/expenses`       | Create an expense                 |
+| PUT    | `/api/expenses/{id}`  | Update an expense                 |
+| DELETE | `/api/expenses/{id}`  | Delete an expense                 |
 
 **Database:** Table `expenses`, managed by Alembic. Migration: `backend/alembic/versions/0001_create_expenses.py`.
 
@@ -72,18 +72,17 @@ This file maps each module in `GRADING.md` to its evidence. Each module section 
 **Screenshots:**
 
 ![m3-commits](docs/screenshots/m3-commits.png)
-
-> **Screenshot pending:** `docs/screenshots/m3-commits-github.png` — GitHub commits page for the repository.
+![m3-commits-github](docs/screenshots/m3-commits-github.png)
 
 ---
 
 ## M4 — Docker
 
-| Item | File | Result |
-|------|------|--------|
-| Backend image | `backend/Dockerfile` | Builds. Runs as UID 10001. |
+| Item           | File                  | Result                                                        |
+| -------------- | --------------------- | ------------------------------------------------------------- |
+| Backend image  | `backend/Dockerfile`  | Builds. Runs as UID 10001.                                    |
 | Frontend image | `frontend/Dockerfile` | Multi-stage: Node build, then nginx runtime. Runs as UID 101. |
-| Compose | `docker-compose.yml` | Three services: `postgres`, `backend`, `frontend` |
+| Compose        | `docker-compose.yml`  | Three services: `postgres`, `backend`, `frontend`             |
 
 `docker compose up --build` starts all three services. The backend runs the Alembic migration before Uvicorn starts.
 
@@ -99,17 +98,16 @@ This file maps each module in `GRADING.md` to its evidence. Each module section 
 
 **Workflow:** `.github/workflows/ci-cd.yml`. It runs on every push to `main`.
 
-| Job | What it does |
-|-----|--------------|
-| `test` | Installs the backend requirements, runs `pytest`, and builds the frontend. |
+| Job               | What it does                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `test`            | Installs the backend requirements, runs `pytest`, and builds the frontend.                                         |
 | `build-scan-push` | Builds both images, scans them with Trivy, and pushes them to GHCR. Tags use the commit SHA (`${{ github.sha }}`). |
 
 The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, with Helm. See M10.
 
 **Screenshots:**
 
-> **Screenshot pending:** `docs/screenshots/m5-actions-green.png` — the green GitHub Actions run on `main`.
-
+![m5-actions-green](docs/screenshots/m5-actions-green.png)
 ![m5-ghcr-packages](docs/screenshots/m5-ghcr-packages.png)
 
 ---
