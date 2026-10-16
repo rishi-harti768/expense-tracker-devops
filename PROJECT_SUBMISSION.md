@@ -190,13 +190,12 @@ The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, 
 
 ---
 
-## M10 — Documentation and Live Demo
+## M10 — Documentation, Presentation and Video
 
-**README:** `README.md` describes the application, its architecture, the local run steps, and the DevOps pipeline.
+**README:** [`README.md`](README.md) is the full technical documentation. It covers the project, architecture, stack, local setup with `docker compose up`, CI/CD, Terraform, Kubernetes and Helm, observability, verified results, and known limitations.
 
-**Live demo:** Show the change path end to end:
+**Slide deck:** [`demo/presentation.pptx`](demo/presentation.pptx), 10 slides.
 
-1. Commit a visible change to `main`.
-2. Show the GitHub Actions run passing `test` and `build-scan-push`.
-3. Run `helm upgrade --install` on the cluster with the new image tag.
-4. Show the updated page in the browser.
+**Presentation video:** `demo/presentation.mp4`. The video shows the slides first, then a live walkthrough of the code, the CI/CD run, the Terraform plan and AWS console, the Kubernetes resources, the Prometheus targets, and the Grafana dashboard.
+
+**Known gap:** ArgoCD (GitOps) is not set up. Deployment is a manual Helm upgrade, as described in the README.

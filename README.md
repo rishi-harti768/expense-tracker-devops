@@ -1,160 +1,90 @@
-# Session 21 — DevOps Final Capstone: ExpenseTracker (Python)
+# ExpenseTracker — DevOps Final Capstone
 
 > **Submission guide:** See [PROJECT_SUBMISSION.md](PROJECT_SUBMISSION.md). It maps each `GRADING.md` module to its evidence and screenshots.
+> **Demo:** The presentation video and slide deck are in [`demo/`](demo/).
 
-## 1. What we are building
+## 1. Project description
 
-ExpenseTracker is a small personal expense tracking application. A user records what they spent, groups each entry into a category (Food, Transport, Bills, Other), and sees totals on a dashboard. The same DevOps layer that runs the app also builds, tests, scans, deploys, and monitors it:
+ExpenseTracker is a personal expense tracker. A user records each expense with a title, amount, category (`FOOD`, `TRANSPORT`, `BILLS`, `OTHER`), date and an optional note. The dashboard shows the total spent, the number of entries, the food and transport totals, and the three newest expenses. The user can filter the table by category, change an expense's category, and delete an expense.
 
-- React + Vite frontend
-- Responsive HTML/JSX + CSS UI
-- FastAPI Python backend
-- PostgreSQL database
-- SQLAlchemy ORM
-- Alembic database migrations
-- REST APIs
-- Pytest automated tests
-- Docker containers
-- GitHub Actions CI/CD
-- Trivy container security scanning
-- GitHub Container Registry
-- Terraform for AWS infrastructure
-- AWS VPC + EKS
-- Kubernetes
-- Helm
-- Ingress
-- HPA
-- Prometheus + Grafana
-- Health/readiness endpoints
-- Troubleshooting exercises
+The project also shows the DevOps path for this application. A commit runs tests, builds and scans container images, and publishes them to a registry. Terraform defines the AWS network and cluster. Helm deploys the app to Kubernetes. Prometheus and Grafana monitor it.
 
-The point is not to teach isolated tools. The point is to show how a real application travels from a developer laptop to a monitored Kubernetes environment.
+## 2. Architecture
 
 ```text
 Developer
-   |
-   v
-Git / GitHub
-   |
+   |  git push (main)
    v
 GitHub Actions
-   |-- pytest
-   |-- frontend build
-   |-- Docker build
-   |-- Trivy scan
-   `-- push images to GHCR
-              |
-              v
-        Terraform
-              |
-       AWS VPC + EKS
-              |
-              v
-            Helm
-              |
-      +-------+--------+
-      |                |
-   Frontend          Backend
-    React            FastAPI
-      |                |
-      +-------> PostgreSQL
-              |
-       Prometheus
-              |
-           Grafana
+   |-- test:             pytest, frontend build
+   `-- build-scan-push:  Docker build -> Trivy scan -> push to GHCR (tag = commit SHA)
+   |
+   v
+GHCR  (expense-tracker-backend, expense-tracker-frontend)
+   |
+   v
+Kubernetes (namespace: expense-tracker, installed with Helm)
+
+  Browser
+    |
+  Ingress (nginx)
+    |-- /      -> frontend Service (port 80)  -> nginx serving the React build
+    `-- /api   -> backend Service  (port 8000) -> FastAPI
+                                                   |
+                                                   v
+                                         PostgreSQL (in-cluster, PVC)
+
+  Prometheus (kube-prometheus-stack) --scrapes /metrics--> backend
+  Grafana    --queries--> Prometheus
 ```
 
----
+Local development uses Docker Compose with the same three services: `postgres`, `backend`, and `frontend`.
 
-## 2. Repository structure
+AWS infrastructure is defined with Terraform. It creates a VPC and an EKS cluster in `ap-south-1`.
+
+## 3. Tech stack
+
+| Area | Tools |
+|------|-------|
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic 2, Uvicorn |
+| Frontend | React 18+, Vite, plain CSS, nginx (`nginx-unprivileged`) |
+| Database | PostgreSQL 16 (`psycopg` driver) |
+| Testing | Pytest, FastAPI `TestClient`, SQLite test database |
+| Containers | Docker, Docker Compose |
+| CI/CD | GitHub Actions, GitHub Container Registry (GHCR) |
+| Security | Trivy (HIGH and CRITICAL gate) |
+| Infrastructure | Terraform, AWS VPC, AWS EKS (Kubernetes 1.31) |
+| Orchestration | Kubernetes, Helm, Ingress (nginx), HPA |
+| Observability | Prometheus, Grafana, kube-prometheus-stack, prometheus-fastapi-instrumentator |
+
+## 4. Repository layout
 
 ```text
-session21-devops-capstone-final/
-├── frontend/                 # React application and CSS
-├── backend/                  # FastAPI application
-│   ├── app/                  # API, models, schemas, DB config
-│   ├── tests/                # Pytest tests
-│   └── alembic/              # DB migrations
-├── docker-compose.yml        # Full local stack
-├── terraform/                # AWS VPC + EKS infrastructure
-├── helm/expense-tracker/      # Kubernetes package
-├── k8s/                      # namespace/bootstrap manifests
-├── monitoring/               # Prometheus/Grafana values
-├── troubleshooting/          # deliberately broken manifests
-├── scripts/                  # load-test helpers
-└── .github/workflows/        # CI/CD
+.
+├── backend/                  FastAPI app
+│   ├── app/                  config, db, models, schemas, main (routes)
+│   ├── alembic/              migrations (0001_create_expenses)
+│   ├── tests/                pytest suite (test_api.py)
+│   ├── Dockerfile            non-root, runs migrations then Uvicorn
+│   └── requirements.txt
+├── frontend/                 React dashboard (src/main.jsx, styles.css)
+│   ├── Dockerfile            Node build stage, nginx runtime stage
+│   └── default.conf.template nginx config, proxies /api to the backend
+├── docker-compose.yml        local stack: postgres, backend, frontend
+├── helm/expense-tracker/     Helm chart (templates, values, values-dev, values-prod)
+├── k8s/namespace.yaml        namespace manifest
+├── monitoring/               kube-prometheus-stack values
+├── terraform/                VPC + EKS (main.tf, variables.tf, outputs.tf, versions.tf)
+├── .github/workflows/        ci-cd.yml
+├── scripts/load-test.sh      sends traffic to /api/expenses
+├── troubleshooting/          two broken manifests for practice
+├── demo/                     presentation video and slide deck
+└── PROJECT_SUBMISSION.md     evidence map for the grader
 ```
 
----
+## 5. Run locally (Docker Compose)
 
-# PART A — UNDERSTAND THE APPLICATION
-
-## 3. Frontend
-
-The frontend is a single-page dashboard for expenses.
-
-It contains:
-
-- dark sidebar
-- dashboard header
-- KPI cards (total spent, entries, food, transport)
-- expense table
-- category filters
-- category badges and a category-cycle button
-- recent expenses panel
-- pipeline indicator
-- create-expense modal
-- responsive CSS
-- loading and backend-error states
-
-The browser calls `/api/expenses` and `/api/expenses/stats`.
-
-The browser does **not** need to know the internal backend hostname. Nginx and Kubernetes Ingress handle routing.
-
-## 4. Backend
-
-FastAPI exposes:
-
-```text
-GET    /
-GET    /health
-GET    /ready
-GET    /metrics
-
-GET    /api/expenses
-GET    /api/expenses/{id}
-POST   /api/expenses
-PUT    /api/expenses/{id}
-DELETE /api/expenses/{id}
-GET    /api/expenses/stats
-```
-
-Swagger documentation is available at `/docs` when the backend is running.
-
-### Why `/health`?
-
-A container can be alive while its application is unhealthy. `/health` gives Kubernetes a cheap liveness check.
-
-### Why `/ready`?
-
-Readiness answers a different question: **can this application serve traffic now?** The endpoint verifies database access before returning READY.
-
-### Why `/metrics`?
-
-Prometheus needs machine-readable metrics. The FastAPI Prometheus instrumentator exposes request metrics for monitoring.
-
----
-
-# PART B — RUN IT LOCALLY
-
-## 5. Fastest method: Docker Compose
-
-Requirements:
-
-- Docker Desktop / Docker Engine
-- Docker Compose
-
-Run:
+Requirements: Docker Desktop (or Docker Engine with Compose).
 
 ```bash
 docker compose up --build
@@ -162,648 +92,214 @@ docker compose up --build
 
 Open:
 
-```text
-http://localhost:3000
-```
+| URL | What |
+|-----|------|
+| `http://localhost:3000` | Dashboard |
+| `http://localhost:8000/docs` | FastAPI Swagger UI |
+| `http://localhost:8000/health` | Liveness check |
+| `http://localhost:8000/metrics` | Prometheus metrics |
 
-Backend:
-
-```text
-http://localhost:8000/docs
-http://localhost:8000/health
-http://localhost:8000/metrics
-```
-
-Stop:
+Stop the stack:
 
 ```bash
-docker compose down
+docker compose down        # keep the database volume
+docker compose down -v     # also delete the database volume
 ```
 
-Delete database volume too:
-
-```bash
-docker compose down -v
-```
-
----
-
-## 6. Run backend directly
-
-Requirements:
-
-- Python 3.12+
-- PostgreSQL
+### Run the backend without Docker
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-Set the database connection:
-
-```bash
 export DATABASE_URL='postgresql+psycopg://expense_tracker:expense_tracker@localhost:5432/expense_tracker'
-```
-
-Run migrations:
-
-```bash
 alembic upgrade head
-```
-
-Start FastAPI:
-
-```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Test:
-
-```bash
-curl http://localhost:8000/health
-curl http://localhost:8000/api/expenses
-```
-
-Open:
-
-```text
-http://localhost:8000/docs
-```
-
----
-
-# PART C — TESTING
-
-## 7. Pytest
+### Run the tests
 
 ```bash
 cd backend
-pytest -q
+pytest -v
 ```
 
-Students should understand why tests happen **before Docker images are pushed**.
+The tests use SQLite (`backend/test.db`). They never touch PostgreSQL.
 
-```text
-Bad code
-  ↓
-pytest fails
-  ↓
-Pipeline stops
-  ↓
-No broken image is promoted
-```
+## 6. API
 
-This is the first quality gate.
+| Method | Path | Purpose | Success |
+|--------|------|---------|---------|
+| GET | `/` | Service name and version | 200 |
+| GET | `/health` | Liveness | 200 `{"status":"UP"}` |
+| GET | `/ready` | Readiness (database query) | 200 `{"status":"READY"}` |
+| GET | `/metrics` | Prometheus metrics | 200 |
+| GET | `/api/expenses` | List, newest first | 200 |
+| GET | `/api/expenses/stats` | Totals and per-category sums | 200 |
+| GET | `/api/expenses/{id}` | One expense | 200, 404 |
+| POST | `/api/expenses` | Create | 201, 422 |
+| PUT | `/api/expenses/{id}` | Update (all fields optional) | 200, 404, 422 |
+| DELETE | `/api/expenses/{id}` | Delete | 204, 404 |
 
----
+`amount` must be greater than 0. `category` must be one of the four values above.
 
-# PART D — GIT AND GITHUB
+## 7. Database
 
-## 8. Initialize Git
+Table `expenses`, created by the Alembic migration `backend/alembic/versions/0001_create_expenses.py`:
 
-```bash
-git init
-git add .
-git commit -m "initial ExpenseTracker application"
-git branch -M main
-git remote add origin <YOUR_GITHUB_REPO>
-git push -u origin main
-```
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | integer | primary key |
+| `title` | varchar(200) | required |
+| `amount` | numeric(10,2) | required, stored exactly, returned as a float |
+| `category` | varchar(20) | default `OTHER` |
+| `spent_on` | date | default today |
+| `note` | text | default empty |
+| `created_at` | timestamptz | set on insert |
 
-Explain:
+The backend container runs `alembic upgrade head` before it starts Uvicorn.
 
-- Git = version control
-- GitHub = remote collaboration/source platform
-- commit = immutable project checkpoint
-- branch = isolated line of development
-- pull request = controlled change review
+## 8. CI/CD pipeline
 
----
+Workflow: `.github/workflows/ci-cd.yml`. It runs on every push and pull request to `main`.
 
-# PART E — DOCKER
+| Job | Steps |
+|-----|-------|
+| `test` | Install backend requirements, run `pytest`, install frontend packages, run `npm run build` |
+| `build-scan-push` (needs `test`) | Log in to GHCR, build both images, scan each with Trivy (`HIGH,CRITICAL`, `ignore-unfixed`, exit code 1 on findings), push both images tagged with `${{ github.sha }}` |
 
-## 9. Backend Dockerfile
+A failing test or a HIGH or CRITICAL finding stops the pipeline before any image is pushed.
 
-The backend image:
+**Deployment is manual in this project.** The deploy job was removed. To deploy a pushed commit to a cluster, run `helm upgrade` with the SHA tag (see section 10).
 
-1. starts from Python
-2. installs dependencies
-3. copies Alembic
-4. copies application code
-5. creates a non-root user
-6. exposes port 8000
-7. runs migrations
-8. starts Uvicorn
+### Trivy fixes made during the build
 
-Build:
+- Backend: pinned `starlette==1.3.1`, `fastapi==0.136.0`, and `prometheus-fastapi-instrumentator==8.1.0` to clear Starlette CVEs.
+- Frontend: moved the runtime image to `nginx-unprivileged:1.29-alpine` and ran `apk upgrade` to clear OpenSSL and c-ares CVEs.
 
-```bash
-docker build -t expense-tracker-backend:local ./backend
-```
+## 9. Terraform (AWS)
 
-Run with a reachable PostgreSQL instance:
+Directory: `terraform/`. Region: `ap-south-1`. Terraform 1.x with the AWS provider.
 
-```bash
-docker run --rm -p 8000:8000 \
-  -e DATABASE_URL='postgresql+psycopg://expense_tracker:expense_tracker@host.docker.internal:5432/expense_tracker' \
-  expense-tracker-backend:local
-```
+What it creates:
 
-## 10. Frontend Dockerfile
+- **VPC** `expense-tracker-vpc` (module `terraform-aws-modules/vpc/aws` 5.8.1): CIDR `10.20.0.0/16`, 2 availability zones (`ap-south-1a`, `ap-south-1b`), 2 public subnets and 2 private subnets, one NAT gateway.
+- **EKS cluster** `expense-tracker-eks` (module `terraform-aws-modules/eks/aws` 20.37.1): Kubernetes 1.31, public API endpoint, private worker subnets.
+- **Managed node group** `main`: 2 × `t3.medium`, scales from 2 to 4.
 
-The frontend uses a multi-stage build:
-
-```text
-Node
-  ↓
-npm build
-  ↓
-static dist/
-  ↓
-Nginx runtime image
-```
-
-This keeps build tooling out of the final runtime image.
-
-Build:
-
-```bash
-docker build -t expense-tracker-frontend:local ./frontend
-```
-
----
-
-# PART F — CI/CD
-
-## 11. GitHub Actions pipeline
-
-The workflow has three conceptual stages:
-
-```text
-TEST
- ↓
-BUILD + SECURITY SCAN + PUSH
- ↓
-DEPLOY
-```
-
-### Test job
-
-- checkout
-- setup Python
-- install requirements
-- run pytest
-- setup Node
-- build React frontend
-
-### Build/scan/push job
-
-- build backend image
-- build frontend image
-- scan both with Trivy
-- push to GHCR
-
-### Deploy job
-
-- install Helm
-- configure kubectl
-- run `helm upgrade --install`
-
-The image tag is the Git commit SHA.
-
-That means:
-
-```text
-commit A → image A
-commit B → image B
-commit C → image C
-```
-
-This gives traceability from production back to source code.
-
----
-
-# PART G — SECURITY SCANNING
-
-## 12. Trivy
-
-The pipeline scans container images for HIGH and CRITICAL vulnerabilities.
-
-A security scanner is not a magic guarantee of security. It is one automated control in the pipeline.
-
-Students should understand:
-
-```text
-SAST
-Dependency scanning
-Secret scanning
-Container scanning
-Runtime security
-```
-
-These are different security layers.
-
----
-
-# PART H — TERRAFORM
-
-## 13. Why Terraform?
-
-Kubernetes only manages workloads. It does not create the AWS network and EKS infrastructure in this project.
-
-Terraform creates:
-
-```text
-AWS
- ├── VPC
- ├── public subnets
- ├── private subnets
- ├── NAT gateway
- └── EKS cluster
-       └── managed worker nodes
-```
-
-Go to Terraform:
+Commands:
 
 ```bash
 cd terraform
 terraform init
-terraform plan
-terraform apply
+terraform plan  -var-file="terraform.tfvars.example"
+terraform apply -var-file="terraform.tfvars.example"
+terraform destroy -var-file="terraform.tfvars.example"
 ```
 
-The default region is `ap-south-1`.
+`terraform.tfvars.example` holds placeholder values only. Keep real values in a `terraform.tfvars` file that Git ignores.
 
-After EKS is created, configure kubectl using the command shown by AWS/Terraform output.
-
-Destroy when finished:
+Connect `kubectl` to the cluster:
 
 ```bash
-terraform destroy
+aws eks update-kubeconfig --region ap-south-1 --name expense-tracker-eks
 ```
 
-### Important teaching point
+Destroy the stack after use. The EKS control plane and NAT gateway cost money while they run.
 
-Terraform is **Infrastructure as Code**.
+## 10. Kubernetes and Helm
 
-Instead of manually clicking:
+Namespace: `k8s/namespace.yaml` (`expense-tracker`).
 
-```text
-AWS Console → VPC → Subnet → EKS → Nodes...
-```
+Chart: `helm/expense-tracker/`.
 
-we describe infrastructure in code and let Terraform reconcile the desired state.
+| Resource | Details |
+|----------|---------|
+| Backend Deployment and Service | Port 8000, probes on `/ready` and `/health`, 2 replicas by default |
+| Frontend Deployment and Service | Port 8080 in the container, Service port 80, 2 replicas by default |
+| PostgreSQL Deployment, Service, PVC | Single replica, 5 GiB volume, credentials in a Secret |
+| Ingress | `/api` → backend 8000, `/` → frontend 80, class `nginx` |
+| HPA | Backend, 2 to 6 replicas, 60% CPU target (disabled in `values-dev.yaml`) |
+| ServiceMonitor | Scrapes `/metrics` on the backend |
 
----
-
-# PART I — KUBERNETES
-
-## 14. Namespace
+Deploy a commit to a cluster (replace `<SHA>` with the commit's full SHA):
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
-```
-
-A namespace provides logical isolation for the application.
-
-## 15. Helm
-
-Instead of maintaining many manually edited YAML files, Helm turns the Kubernetes deployment into a reusable package.
-
-```bash
-helm upgrade --install expense-tracker ./helm/expense-tracker \
-  --namespace expense-tracker \
-  --create-namespace
-```
-
-Important Helm concepts:
-
-- Chart
-- values
-- templates
-- release
-- upgrade
-- rollback
-
----
-
-# PART J — KUBERNETES COMPONENTS
-
-## 16. Deployment
-
-The Deployment manages backend/frontend Pods.
-
-If a Pod dies:
-
-```text
-Deployment
-   ↓
-creates replacement Pod
-```
-
-## 17. Service
-
-Pods are ephemeral. A Service provides stable networking.
-
-```text
-Frontend → backend Service → backend Pods
-```
-
-## 18. PostgreSQL
-
-For the classroom/local Kubernetes demo, PostgreSQL is deployed inside the cluster with a PVC.
-
-For production AWS architecture, students should understand the tradeoff between running PostgreSQL in Kubernetes and using a managed database such as Amazon RDS.
-
----
-
-# PART K — INGRESS
-
-## 19. Ingress
-
-The application has two logical routes:
-
-```text
-/expense-tracker.local/
-      ↓
-React frontend
-
-/expense-tracker.local/api
-      ↓
-FastAPI backend
-```
-
-Enable ingress with the dev values:
-
-```bash
 helm upgrade --install expense-tracker ./helm/expense-tracker \
   -n expense-tracker \
-  -f helm/expense-tracker/values-dev.yaml
+  -f helm/expense-tracker/values-dev.yaml \
+  --set backend.image=ghcr.io/rishi-harti768/expense-tracker-backend --set backend.tag=<SHA> \
+  --set frontend.image=ghcr.io/rishi-harti768/expense-tracker-frontend --set frontend.tag=<SHA> \
+  --wait
 ```
 
-Students should understand that an Ingress resource is only configuration. An Ingress Controller must actually implement it.
-
----
-
-# PART L — HPA
-
-## 20. Horizontal Pod Autoscaler
-
-The HPA can scale the backend based on CPU utilization.
-
-```text
-low traffic
-   ↓
-2 Pods
-
-high CPU
-   ↓
-3 Pods
-   ↓
-4 Pods
-   ↓
-...
-```
-
-Inspect:
-
-```bash
-kubectl get hpa -n expense-tracker
-```
-
-HPA requires resource requests and a metrics provider such as Metrics Server.
-
-A normal health request may not create enough CPU pressure to demonstrate scaling. For a classroom demo, use a controlled load generator and watch the metrics.
-
----
-
-# PART M — MONITORING
-
-## 21. Prometheus
-
-Prometheus collects metrics from the FastAPI `/metrics` endpoint.
-
-The ServiceMonitor tells the Prometheus Operator what to scrape.
-
-## 22. Grafana
-
-Grafana visualizes the collected metrics.
-
-Useful questions:
-
-- How many HTTP requests are arriving?
-- Which endpoint is slow?
-- Are errors increasing?
-- Is the application receiving traffic?
-- Is CPU increasing?
-- Is HPA scaling?
-
----
-
-# PART N — TROUBLESHOOTING LAB
-
-## 23. Broken image
-
-Apply:
-
-```bash
-kubectl apply -f troubleshooting/broken-image.yaml
-```
-
-Then:
-
-```bash
-kubectl get pods
-kubectl describe pod <pod-name>
-kubectl get events --sort-by=.lastTimestamp
-```
-
-Expected investigation:
-
-```text
-ImagePullBackOff
-      ↓
-describe Pod
-      ↓
-wrong image/tag
-      ↓
-fix deployment
-```
-
-## 24. Broken Service
-
-Apply:
-
-```bash
-kubectl apply -f troubleshooting/broken-service.yaml
-```
-
-Investigate:
-
-```bash
-kubectl get svc
-kubectl get endpoints
-kubectl get pods --show-labels
-```
-
-The key lesson is that a Service selects Pods using labels.
-
-No matching labels = no endpoints = no traffic.
-
----
-
-# PART O — FINAL DEMO
-
-### 1. Application
-
-Open ExpenseTracker and create an expense.
-
-### 2. API
-
-Open FastAPI Swagger:
-
-```text
-/docs
-```
-
-Create/read/update/delete an expense.
-
-### 3. Database
-
-Show the PostgreSQL `expenses` table.
-
-### 4. Git
-
-Make a small application change and commit it.
-
-### 5. CI
-
-Push to GitHub and show tests running.
-
-### 6. Docker
-
-Show the two images.
-
-### 7. Security
-
-Show Trivy scanning the images.
-
-### 8. Registry
-
-Show the images in GHCR.
-
-### 9. Terraform
-
-Show the AWS infrastructure code.
-
-### 10. Kubernetes
-
-```bash
-kubectl get pods -n expense-tracker
-kubectl get svc -n expense-tracker
-```
-
-### 11. Helm
+Check the release:
 
 ```bash
 helm list -n expense-tracker
-```
-
-### 12. Ingress
-
-Open the application through the Ingress hostname.
-
-### 13. HPA
-
-```bash
+kubectl get pods -n expense-tracker
+kubectl get svc -n expense-tracker
 kubectl get hpa -n expense-tracker
 ```
 
-### 14. Monitoring
+Dev values use the host `expense-tracker.local`. On a local cluster, map that name to the Ingress address in your hosts file. On EKS, pass the load balancer hostname with `--set ingress.host=<HOST>` and enable the ServiceMonitor only if the Prometheus CRDs are installed.
 
-Show Prometheus and Grafana.
+Local test cluster used for this project: minikube with the `ingress-nginx` addon.
 
-### 15. Failure simulation
+## 11. Observability
 
-Break a Service/image and troubleshoot it live.
+- The backend exports Prometheus metrics at `/metrics` using `prometheus-fastapi-instrumentator`.
+- `monitoring/prometheus-values.yaml` configures `kube-prometheus-stack`. Install it:
 
----
+  ```bash
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+    -n monitoring --create-namespace -f monitoring/prometheus-values.yaml --wait
+  ```
 
-# FINAL STUDENT PROJECT
+- The chart's ServiceMonitor tells Prometheus to scrape the backend every 15 seconds.
+- Grafana has a dashboard named **ExpenseTracker HTTP** with two panels: requests per second, and requests per second by handler. The queries are:
 
-Possible domains:
+  ```text
+  sum(rate(http_requests_total{namespace="expense-tracker"}[2m]))
+  sum by (handler) (rate(http_requests_total{namespace="expense-tracker"}[2m]))
+  ```
 
-- CRM
-- Inventory management
-- Appointment booking
-- Helpdesk
-- Ecommerce administration
-- Clinic management
-- Restaurant management
-- Employee management
-- Learning management system
+  The dashboard was created in the running Grafana instance. It is not stored as a file in this repository.
 
-Minimum requirements:
+Access the tools with port-forwards:
 
-### Application
-
-- frontend
-- backend
-- PostgreSQL
-- minimum 4 REST APIs
-- responsive UI
-
-### Engineering
-
-- Git/GitHub
-- automated tests
-- Docker
-
-### DevOps
-
-- GitHub Actions
-- security scan
-- container registry
-- Terraform
-- Kubernetes
-- Helm
-- Ingress
-- HPA
-- Prometheus/Grafana
-
-### Final presentation
-
-Each student must demonstrate:
-
-```text
-Application
-  ↓
-Git commit
-  ↓
-CI pipeline
-  ↓
-Docker image
-  ↓
-Security scan
-  ↓
-Registry
-  ↓
-Terraform infrastructure
-  ↓
-Kubernetes deployment
-  ↓
-Helm
-  ↓
-Ingress
-  ↓
-Autoscaling
-  ↓
-Monitoring
-  ↓
-Troubleshooting
+```bash
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3001:80
 ```
 
-That is the actual objective of Session 21.
+## 12. Verified results
+
+| Area | Result |
+|------|--------|
+| Backend tests | 7 of 7 pass (Python 3.12 container) |
+| Docker Compose | `postgres`, `backend` and `frontend` start. Migration runs. CRUD works through port 3000. |
+| CI | `test` and `build-scan-push` jobs pass on `main` |
+| Trivy | Backend and frontend images pass with no HIGH or CRITICAL fixable findings |
+| Terraform | `plan` shows 54 resources. `apply` creates the VPC and EKS cluster. Both nodes reach Ready. `destroy` completes. |
+| Helm | `helm lint` passes. The release deploys to minikube, and all pods run. |
+| Prometheus | Both backend pods are `UP` as targets |
+| Grafana | Both dashboard panels show live request data |
+
+## 13. Known issues and limitations
+
+- **No automated deployment.** The deploy job was removed from the pipeline. Deployment is a manual `helm upgrade`. ArgoCD (GitOps) is not set up.
+- **Secrets in values.** The PostgreSQL password is a plain value in `values.yaml`. It is acceptable for a classroom demo and must not be reused anywhere else.
+- **Single PostgreSQL replica.** The database runs in the cluster with one replica and one volume. There is no backup or failover.
+- **Backend restarts on first start.** If PostgreSQL is not ready, the backend exits and Kubernetes restarts it. It recovers on the next attempt. An init container that waits for PostgreSQL would remove the restarts.
+- **Grafana dashboard is not in the repo.** Recreate it from the queries in section 11.
+- **Local hostname.** `expense-tracker.local` must be mapped to the cluster address on your machine.
+- **Test database file.** `backend/test.db` is kept between runs. The stats test uses before and after values, so it does not depend on a clean file.
+- **Single NAT gateway.** Lower cost, but one Availability Zone failure removes outbound internet access for private subnets.
+
+## 14. Contributing and branches
+
+Work on `main`. Commit with a short description of the change. Each push runs the pipeline.
