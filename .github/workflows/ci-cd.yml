@@ -1,4 +1,4 @@
-name: TaskBoard Python CI/CD
+name: ExpenseTracker Python CI/CD
 on:
   push:
     branches: [main]
@@ -37,26 +37,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }} ./backend
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }} ./frontend
+          docker build -t ghcr.io/${{ github.repository_owner }}/expense-tracker-backend:${{ github.sha }} ./backend
+          docker build -t ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend:${{ github.sha }} ./frontend
       - name: Scan backend
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/expense-tracker-backend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan frontend
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Push images
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/expense-tracker-backend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend:${{ github.sha }}
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build-scan-push
@@ -72,8 +72,8 @@ jobs:
           echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
       - name: Deploy with Helm
         run: |
-          helm upgrade --install taskboard ./helm/taskboard -n taskboard --create-namespace \
+          helm upgrade --install expense-tracker ./helm/expense-tracker -n expense-tracker --create-namespace \
             --set backend.tag=${{ github.sha }} \
             --set frontend.tag=${{ github.sha }} \
-            --set backend.image=ghcr.io/${{ github.repository_owner }}/taskboard-backend \
-            --set frontend.image=ghcr.io/${{ github.repository_owner }}/taskboard-frontend
+            --set backend.image=ghcr.io/${{ github.repository_owner }}/expense-tracker-backend \
+            --set frontend.image=ghcr.io/${{ github.repository_owner }}/expense-tracker-frontend
