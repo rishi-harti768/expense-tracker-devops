@@ -1,20 +1,21 @@
 frontend:
-  image: ghcr.io/YOUR_ORG/taskboard-frontend
+  image: ghcr.io/YOUR_ORG/expense-tracker-frontend
   tag: latest
 backend:
-  image: ghcr.io/YOUR_ORG/taskboard-backend
+  image: ghcr.io/YOUR_ORG/expense-tracker-backend
   tag: latest
 replicaCount: 2
-namespace: taskboard
+namespace: expense-tracker
 imagePullSecrets: []
 postgres:
-  host: taskboard-postgres
-  database: taskboard
-  username: taskboard
-  password: taskboard
+  host: expense-tracker-postgres
+  database: expense_tracker
+  username: expense_tracker
+  password: expense_tracker
 ingress:
   enabled: false
-  host: taskboard.local
+  className: nginx
+  host: expense-tracker.local
 hpa:
   enabled: true
   minReplicas: 2

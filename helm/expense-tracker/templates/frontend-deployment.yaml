@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: taskboard-frontend, labels: {app: taskboard-frontend}}
+metadata: {name: {{ include "expense-tracker.fullname" . }}-frontend, labels: {app: expense-tracker-frontend}}
 spec:
   replicas: {{ .Values.replicaCount }}
-  selector: {matchLabels: {app: taskboard-frontend}}
+  selector: {matchLabels: {app: expense-tracker-frontend}}
   template:
-    metadata: {labels: {app: taskboard-frontend}}
+    metadata: {labels: {app: expense-tracker-frontend}}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -15,7 +15,7 @@ spec:
       - name: frontend
         image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
         ports: [{containerPort: 8080}]
-        env: [{name: BACKEND_HOST, value: taskboard-backend}]
+        env: [{name: BACKEND_HOST, value: {{ include "expense-tracker.fullname" . }}-backend}]
         readinessProbe: {httpGet: {path: /, port: 8080}, initialDelaySeconds: 5}
         livenessProbe: {httpGet: {path: /, port: 8080}, initialDelaySeconds: 10}
         resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 200m, memory: 128Mi}}
