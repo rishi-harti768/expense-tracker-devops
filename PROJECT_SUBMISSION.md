@@ -164,13 +164,13 @@ The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, 
 
 **Screenshots:**
 
-> **Screenshot pending:** `docs/screenshots/m8-helm-list.png` — `helm list -n expense-tracker`.
+![m8-helm-list](docs/screenshots/m8-helm-list.png)
 
-> **Screenshot pending:** `docs/screenshots/m8-get-pods.png` — `kubectl get pods -n expense-tracker`, showing all pods `Running`.
+![m8-get-pods](docs/screenshots/m8-get-pods.png)
 
-> **Screenshot pending:** `docs/screenshots/m8-get-svc.png` — `kubectl get svc -n expense-tracker`.
+![m8-get-svc](docs/screenshots/m8-get-svc.png)
 
-> **Screenshot pending:** `docs/screenshots/m8-browser-ingress.png` — the application in the browser, through the Ingress at `expense-tracker.local`.
+![m8-browser-ingress](docs/screenshots/m8-browser-ingress.png)
 
 ---
 
