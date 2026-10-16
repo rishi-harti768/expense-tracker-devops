@@ -18,7 +18,7 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 | M6 | Trivy | Done |
 | M7 | Terraform | Done (screenshots pending) |
 | M8 | Kubernetes + Helm | Chart done. Deployed to minikube. EKS deploy pending. |
-| M9 | Observability | Pending |
+| M9 | Observability | Done on minikube (screenshots pending) |
 | M10 | README and demo | README done. Live demo pending. |
 
 ---
@@ -198,7 +198,7 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Files:** `monitoring/prometheus-values.yaml`. The backend exposes `/metrics`. The chart includes a ServiceMonitor, which turns on when the Prometheus Operator CRD is installed.
 
-**Status:** Pending. Install `kube-prometheus-stack`, enable the ServiceMonitor, and create a Grafana panel.
+**Verified (minikube):** `kube-prometheus-stack` is installed in the `monitoring` namespace. The ServiceMonitor is on. Prometheus shows both backend pods as `up`. The Grafana dashboard `ExpenseTracker HTTP` has two live panels: requests per second, and requests per second by handler.
 
 **Screenshots:**
 
