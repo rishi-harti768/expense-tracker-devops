@@ -234,14 +234,18 @@ Use this part only if you choose the AWS path. Each step costs money until you r
 
    ```powershell
    aws login
+   aws configure export-credentials --format powershell | Invoke-Expression
+   $env:AWS_REGION="ap-south-1"
    ```
+
+   Terraform does not read the `aws login` session by itself. The `Invoke-Expression` line loads the session into this PowerShell window. Run it in the same window as the Terraform commands. If you see `lookup ... no such host`, wait a minute and run the command again.
 
 2. Plan, then capture the output. Save it as `m7-plan.png`:
 
    ```powershell
    cd terraform
    terraform init
-   terraform plan -var-file=terraform.tfvars.example
+   terraform plan -var-file="terraform.tfvars.example"
    ```
 
    The output must end with `Plan: 54 to add, 0 to change, 0 to destroy`.
@@ -249,7 +253,7 @@ Use this part only if you choose the AWS path. Each step costs money until you r
 3. Apply:
 
    ```powershell
-   terraform apply -var-file=terraform.tfvars.example
+   terraform apply -var-file="terraform.tfvars.example"
    ```
 
    Type `yes` when asked. The apply takes about 20 to 25 minutes.
@@ -261,7 +265,7 @@ Use this part only if you choose the AWS path. Each step costs money until you r
 6. Destroy and capture:
 
    ```powershell
-   terraform destroy -var-file=terraform.tfvars.example
+   terraform destroy -var-file="terraform.tfvars.example"
    ```
 
    Type `yes` when asked. Capture the final line that says `Destroy complete!`. Save it as `m7-destroy.png`.
