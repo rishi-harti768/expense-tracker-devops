@@ -1,8 +1,8 @@
-# Session 21 — DevOps Final Capstone: TaskBoard (Python)
+# Session 21 — DevOps Final Capstone: ExpenseTracker (Python)
 
 ## 1. What we are building
 
-TaskBoard is a small but realistic SaaS-style project management application:
+ExpenseTracker is a small personal expense tracking application. A user records what they spent, groups each entry into a category (Food, Transport, Bills, Other), and sees totals on a dashboard. The same DevOps layer that runs the app also builds, tests, scans, deploys, and monitors it:
 
 - React + Vite frontend
 - Responsive HTML/JSX + CSS UI
@@ -75,7 +75,7 @@ session21-devops-capstone-final/
 │   └── alembic/              # DB migrations
 ├── docker-compose.yml        # Full local stack
 ├── terraform/                # AWS VPC + EKS infrastructure
-├── helm/taskboard/            # Kubernetes package
+├── helm/expense-tracker/      # Kubernetes package
 ├── k8s/                      # namespace/bootstrap manifests
 ├── monitoring/               # Prometheus/Grafana values
 ├── troubleshooting/          # deliberately broken manifests
@@ -89,24 +89,23 @@ session21-devops-capstone-final/
 
 ## 3. Frontend
 
-The frontend is intentionally closer to a real SaaS dashboard than a tutorial CRUD page.
+The frontend is a single-page dashboard for expenses.
 
 It contains:
 
 - dark sidebar
-- workspace navigation
 - dashboard header
-- KPI cards
-- task table
-- status filters
-- priority badges
-- activity feed
+- KPI cards (total spent, entries, food, transport)
+- expense table
+- category filters
+- category badges and a category-cycle button
+- recent expenses panel
 - pipeline indicator
-- create-task modal
+- create-expense modal
 - responsive CSS
 - loading and backend-error states
 
-The browser calls `/api/tasks` and `/api/tasks/stats`.
+The browser calls `/api/expenses` and `/api/expenses/stats`.
 
 The browser does **not** need to know the internal backend hostname. Nginx and Kubernetes Ingress handle routing.
 
@@ -120,12 +119,12 @@ GET    /health
 GET    /ready
 GET    /metrics
 
-GET    /api/tasks
-GET    /api/tasks/{id}
-POST   /api/tasks
-PUT    /api/tasks/{id}
-DELETE /api/tasks/{id}
-GET    /api/tasks/stats
+GET    /api/expenses
+GET    /api/expenses/{id}
+POST   /api/expenses
+PUT    /api/expenses/{id}
+DELETE /api/expenses/{id}
+GET    /api/expenses/stats
 ```
 
 Swagger documentation is available at `/docs` when the backend is running.
@@ -204,7 +203,7 @@ pip install -r requirements.txt
 Set the database connection:
 
 ```bash
-export DATABASE_URL='postgresql+psycopg://taskboard:taskboard@localhost:5432/taskboard'
+export DATABASE_URL='postgresql+psycopg://expense_tracker:expense_tracker@localhost:5432/expense_tracker'
 ```
 
 Run migrations:
@@ -223,7 +222,7 @@ Test:
 
 ```bash
 curl http://localhost:8000/health
-curl http://localhost:8000/api/tasks
+curl http://localhost:8000/api/expenses
 ```
 
 Open:
@@ -266,7 +265,7 @@ This is the first quality gate.
 ```bash
 git init
 git add .
-git commit -m "initial TaskBoard application"
+git commit -m "initial ExpenseTracker application"
 git branch -M main
 git remote add origin <YOUR_GITHUB_REPO>
 git push -u origin main
@@ -300,15 +299,15 @@ The backend image:
 Build:
 
 ```bash
-docker build -t taskboard-backend:local ./backend
+docker build -t expense-tracker-backend:local ./backend
 ```
 
 Run with a reachable PostgreSQL instance:
 
 ```bash
 docker run --rm -p 8000:8000 \
-  -e DATABASE_URL='postgresql+psycopg://taskboard:taskboard@host.docker.internal:5432/taskboard' \
-  taskboard-backend:local
+  -e DATABASE_URL='postgresql+psycopg://expense_tracker:expense_tracker@host.docker.internal:5432/expense_tracker' \
+  expense-tracker-backend:local
 ```
 
 ## 10. Frontend Dockerfile
@@ -330,7 +329,7 @@ This keeps build tooling out of the final runtime image.
 Build:
 
 ```bash
-docker build -t taskboard-frontend:local ./frontend
+docker build -t expense-tracker-frontend:local ./frontend
 ```
 
 ---
@@ -473,8 +472,8 @@ A namespace provides logical isolation for the application.
 Instead of maintaining many manually edited YAML files, Helm turns the Kubernetes deployment into a reusable package.
 
 ```bash
-helm upgrade --install taskboard ./helm/taskboard \
-  --namespace taskboard \
+helm upgrade --install expense-tracker ./helm/expense-tracker \
+  --namespace expense-tracker \
   --create-namespace
 ```
 
@@ -526,11 +525,11 @@ For production AWS architecture, students should understand the tradeoff between
 The application has two logical routes:
 
 ```text
-/taskboard.local/
+/expense-tracker.local/
       ↓
 React frontend
 
-/taskboard.local/api
+/expense-tracker.local/api
       ↓
 FastAPI backend
 ```
@@ -538,9 +537,9 @@ FastAPI backend
 Enable ingress with the dev values:
 
 ```bash
-helm upgrade --install taskboard ./helm/taskboard \
-  -n taskboard \
-  -f helm/taskboard/values-dev.yaml
+helm upgrade --install expense-tracker ./helm/expense-tracker \
+  -n expense-tracker \
+  -f helm/expense-tracker/values-dev.yaml
 ```
 
 Students should understand that an Ingress resource is only configuration. An Ingress Controller must actually implement it.
@@ -570,7 +569,7 @@ high CPU
 Inspect:
 
 ```bash
-kubectl get hpa -n taskboard
+kubectl get hpa -n expense-tracker
 ```
 
 HPA requires resource requests and a metrics provider such as Metrics Server.
@@ -658,7 +657,7 @@ No matching labels = no endpoints = no traffic.
 
 ### 1. Application
 
-Open TaskBoard and create a task.
+Open ExpenseTracker and create an expense.
 
 ### 2. API
 
@@ -668,11 +667,11 @@ Open FastAPI Swagger:
 /docs
 ```
 
-Create/read/update/delete a task.
+Create/read/update/delete an expense.
 
 ### 3. Database
 
-Show the PostgreSQL `tasks` table.
+Show the PostgreSQL `expenses` table.
 
 ### 4. Git
 
@@ -701,14 +700,14 @@ Show the AWS infrastructure code.
 ### 10. Kubernetes
 
 ```bash
-kubectl get pods -n taskboard
-kubectl get svc -n taskboard
+kubectl get pods -n expense-tracker
+kubectl get svc -n expense-tracker
 ```
 
 ### 11. Helm
 
 ```bash
-helm list -n taskboard
+helm list -n expense-tracker
 ```
 
 ### 12. Ingress
@@ -718,7 +717,7 @@ Open the application through the Ingress hostname.
 ### 13. HPA
 
 ```bash
-kubectl get hpa -n taskboard
+kubectl get hpa -n expense-tracker
 ```
 
 ### 14. Monitoring
