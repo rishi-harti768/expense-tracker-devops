@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "cluster_name" {
-  default = "taskboard-eks"
+  default = "expense-tracker-eks"
 }
 
 variable "environment" {

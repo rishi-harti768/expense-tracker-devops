@@ -2,7 +2,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.8.1"
 
-  name = "taskboard-vpc"
+  name = "expense-tracker-vpc"
   cidr = "10.20.0.0/16"
 
   azs             = ["ap-south-1a", "ap-south-1b"]
