@@ -16,3 +16,6 @@ __pycache__/
 
 # Office lock files created while a document is open
 ~$*
+
+# Raw screen recording (too large for Git; the compressed demo/presentation.mp4 is committed)
+demo/recordings.mp4
