@@ -182,11 +182,11 @@ The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, 
 
 **Screenshots:**
 
-> **Screenshot pending:** `docs/screenshots/m9-metrics.png` — output of `curl <backend>/metrics`.
+![m9-metrics](docs/screenshots/m9-metrics.png)
 
-> **Screenshot pending:** `docs/screenshots/m9-prometheus-targets.png` — Prometheus Targets page, with the backend targets `UP`.
+![m9-prometheus-targets](docs/screenshots/m9-prometheus-targets.png)
 
-> **Screenshot pending:** `docs/screenshots/m9-grafana.png` — the Grafana dashboard with live data.
+![m9-grafana](docs/screenshots/m9-grafana.png)
 
 ---
 
