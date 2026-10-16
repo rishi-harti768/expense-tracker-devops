@@ -4,22 +4,20 @@
 **Repository:** https://github.com/rishi-harti768/expense-tracker-devops
 **Application:** ExpenseTracker, a personal expense tracker (FastAPI, React, PostgreSQL)
 
-This file maps each module in `GRADING.md` to the evidence in this repository. Screenshot placeholders are empty. Replace each placeholder with the real image before you submit.
+This file maps each module in `GRADING.md` to its evidence. Each module section lists the code, the verification steps, and the screenshots.
 
-## Status
-
-| Module | Topic             | Status                                                |
-| ------ | ----------------- | ----------------------------------------------------- |
-| M1     | Application       | Done                                                  |
-| M2     | Testing           | Done                                                  |
-| M3     | Git and GitHub    | Done                                                  |
-| M4     | Docker            | Done                                                  |
-| M5     | CI/CD             | Partial. Test and build-scan-push are green. Deploy job is red (needs a live cluster and secret). |
-| M6     | Trivy             | Done                                                  |
-| M7     | Terraform         | Done (screenshots pending)                            |
-| M8     | Kubernetes + Helm | Chart done. Deployed to minikube. EKS deploy pending. |
-| M9     | Observability     | Done on minikube (screenshots pending)                |
-| M10    | README and demo   | README done. Live demo pending.                       |
+| Module | Topic | Evidence |
+|--------|-------|----------|
+| M1 | Application | [Section M1](#m1--application-frontend--backend--database) |
+| M2 | Testing | [Section M2](#m2--testing-pytest) |
+| M3 | Git and GitHub | [Section M3](#m3--git-and-github) |
+| M4 | Docker | [Section M4](#m4--docker) |
+| M5 | CI/CD | [Section M5](#m5--cicd-github-actions) |
+| M6 | DevSecOps (Trivy) | [Section M6](#m6--devsecops-trivy) |
+| M7 | Terraform (AWS) | [Section M7](#m7--terraform-aws-vpc-and-eks) |
+| M8 | Kubernetes and Helm | [Section M8](#m8--kubernetes-and-helm) |
+| M9 | Observability | [Section M9](#m9--observability-prometheus-and-grafana) |
+| M10 | Documentation and demo | [Section M10](#m10--documentation-and-live-demo) |
 
 ---
 
@@ -27,25 +25,25 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Endpoints** (`backend/app/main.py`, prefix `/api/expenses`):
 
-| Method | Path                  | Purpose                           |
-| ------ | --------------------- | --------------------------------- |
-| GET    | `/health`             | Liveness check                    |
-| GET    | `/ready`              | Readiness check (database access) |
-| GET    | `/metrics`            | Prometheus metrics                |
-| GET    | `/api/expenses`       | List expenses, newest first       |
-| GET    | `/api/expenses/stats` | Totals by category                |
-| GET    | `/api/expenses/{id}`  | Read one expense                  |
-| POST   | `/api/expenses`       | Create an expense                 |
-| PUT    | `/api/expenses/{id}`  | Update an expense                 |
-| DELETE | `/api/expenses/{id}`  | Delete an expense                 |
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/health` | Liveness check |
+| GET | `/ready` | Readiness check (database access) |
+| GET | `/metrics` | Prometheus metrics |
+| GET | `/api/expenses` | List expenses, newest first |
+| GET | `/api/expenses/stats` | Totals by category |
+| GET | `/api/expenses/{id}` | Read one expense |
+| POST | `/api/expenses` | Create an expense |
+| PUT | `/api/expenses/{id}` | Update an expense |
+| DELETE | `/api/expenses/{id}` | Delete an expense |
 
 **Database:** Table `expenses`, managed by Alembic. Migration: `backend/alembic/versions/0001_create_expenses.py`.
 
 **Frontend:** React dashboard in `frontend/src/main.jsx`. It shows KPI cards, a category filter, a table with category cycling and delete, a create modal, and the three newest expenses.
 
-**Submitted files:** `backend/app/`, `backend/alembic/versions/`, `backend/requirements.txt`, `frontend/`, `docker-compose.yml`.
+**Files:** `backend/app/`, `backend/alembic/versions/`, `backend/requirements.txt`, `frontend/`, `docker-compose.yml`.
 
-**Screenshot: running application in the browser**
+**Screenshot: application in the browser**
 
 ![m1-app-browser](docs/screenshots/m1-app-browser.png)
 
@@ -55,11 +53,9 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Tests:** `backend/tests/test_api.py` has 7 tests. They cover `/health`, `/`, POST, zero-amount validation (422), GET of a missing id (404), PUT and DELETE, and stats.
 
-**Config:** `backend/pytest.ini`.
+**Configuration:** `backend/pytest.ini`.
 
-**Test database:** SQLite `test.db` through `DATABASE_URL`, not the production PostgreSQL database.
-
-**Result (local, Python 3.12 container):** `7 passed`.
+**Test database:** SQLite `test.db`, set through `DATABASE_URL`. The tests never use the PostgreSQL database.
 
 **Screenshot: `pytest -v` output**
 
@@ -73,29 +69,27 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **`.gitignore`** excludes `.env`, `__pycache__/`, `node_modules/`, `.venv/`, `*.db`, and Terraform state.
 
-**Commit history:** Show at least 10 commits.
-
-**Screenshot: commit history**
+**Screenshots:**
 
 ![m3-commits](docs/screenshots/m3-commits.png)
+
+> **Screenshot pending:** `docs/screenshots/m3-commits-github.png` — GitHub commits page for the repository.
 
 ---
 
 ## M4 — Docker
 
-| Item           | File                  | Result                                                        |
-| -------------- | --------------------- | ------------------------------------------------------------- |
-| Backend image  | `backend/Dockerfile`  | Builds. Runs as UID 10001.                                    |
+| Item | File | Result |
+|------|------|--------|
+| Backend image | `backend/Dockerfile` | Builds. Runs as UID 10001. |
 | Frontend image | `frontend/Dockerfile` | Multi-stage: Node build, then nginx runtime. Runs as UID 101. |
-| Compose        | `docker-compose.yml`  | Three services: `postgres`, `backend`, `frontend`             |
+| Compose | `docker-compose.yml` | Three services: `postgres`, `backend`, `frontend` |
 
-**Verified:** `docker compose up --build` starts all three services. Logs show Alembic running the migration, Uvicorn starting, and nginx starting. CRUD and stats work through the frontend proxy on port 3000.
+`docker compose up --build` starts all three services. The backend runs the Alembic migration before Uvicorn starts.
 
-**Screenshot: `docker compose up --build` output**
+**Screenshots:**
 
 ![m4-compose-up](docs/screenshots/m4-compose-up.png)
-
-**Screenshot: browser at `http://localhost:3000`**
 
 ![m4-browser-3000](docs/screenshots/m4-browser-3000.png)
 
@@ -103,24 +97,18 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 ## M5 — CI/CD (GitHub Actions)
 
-**Workflow:** `.github/workflows/ci-cd.yml`
+**Workflow:** `.github/workflows/ci-cd.yml`. It runs on every push to `main`.
 
-- Trigger: push to `main`.
-- Job `test`: installs the backend requirements, runs `pytest`, and builds the frontend.
-- Job `build-scan-push`: builds both images, scans them with Trivy, and pushes them to GHCR. Image tags use the commit SHA (`${{ github.sha }}`).
-- Job `deploy`: runs `helm upgrade --install` against the cluster in the `KUBE_CONFIG_DATA` secret.
+| Job | What it does |
+|-----|--------------|
+| `test` | Installs the backend requirements, runs `pytest`, and builds the frontend. |
+| `build-scan-push` | Builds both images, scans them with Trivy, and pushes them to GHCR. Tags use the commit SHA (`${{ github.sha }}`). |
 
-**Green run:** https://github.com/rishi-harti768/expense-tracker-devops/actions (`test` and `build-scan-push` passed).
+The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, with Helm. See M10.
 
-**Deploy job:** Red. It needs a live cluster and the `KUBE_CONFIG_DATA` secret. The repo has no secret yet.
+**Screenshots:**
 
-**Screenshot status:** The `test` and `build-scan-push` jobs are green. The full run is red because of the deploy job, so the green-run screenshot is pending.
-
-**Screenshot: green GitHub Actions run**
-
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m5-actions-green.png`]
-
-**Screenshot: GHCR packages with SHA tags**
+> **Screenshot pending:** `docs/screenshots/m5-actions-green.png` — the green GitHub Actions run on `main`.
 
 ![m5-ghcr-packages](docs/screenshots/m5-ghcr-packages.png)
 
@@ -128,18 +116,16 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 ## M6 — DevSecOps (Trivy)
 
-**Scan:** Trivy runs on both images in `build-scan-push`, with `severity: HIGH,CRITICAL`, `ignore-unfixed: true`, and `exit-code: '1'`. A HIGH or CRITICAL finding fails the build.
+**Scan:** Trivy scans both images in `build-scan-push`. It uses `severity: HIGH,CRITICAL`, `ignore-unfixed: true`, and `exit-code: '1'`. A HIGH or CRITICAL finding fails the build, so the image is not pushed.
 
-**Findings fixed during the build:**
+**Fixes made during the build:**
 
-- Backend: Starlette CVEs fixed by `starlette==1.3.1`, `fastapi==0.136.0`, and `prometheus-fastapi-instrumentator==8.1.0`.
-- Frontend: OpenSSL and c-ares CVEs in the Alpine base. Fixed by moving to `nginx-unprivileged:1.29-alpine` and running `apk upgrade`.
+- Backend: Starlette CVEs fixed by pinning `starlette==1.3.1`, `fastapi==0.136.0`, and `prometheus-fastapi-instrumentator==8.1.0`.
+- Frontend: OpenSSL and c-ares CVEs in the Alpine base. Fixed by moving to `nginx-unprivileged:1.29-alpine` and running `apk upgrade` as root before the switch to UID 101.
 
-**Result:** Both images pass the scan (exit 0 when scanned locally).
+**Explanation:** Trivy scans each container image for known CVEs in OS and language packages. The scan gates the pipeline, so an image with a fixable HIGH or CRITICAL CVE is never pushed.
 
-**Explanation:** Trivy scans each container image for known CVEs in OS packages and language packages. The scan gates the pipeline, so an image with a HIGH or CRITICAL fixable CVE is never pushed.
-
-**Screenshot: Trivy output from a pipeline run**
+**Screenshot: Trivy output from the pipeline**
 
 ![m6-trivy](docs/screenshots/m6-trivy.png)
 
@@ -147,26 +133,23 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 ## M7 — Terraform (AWS VPC and EKS)
 
-**Files:** `terraform/main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`. Example variables: `terraform/terraform.tfvars.example` (placeholder values only, no credentials).
+**Files:** `terraform/main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`. Example variables: `terraform/terraform.tfvars.example` (placeholder values only).
 
 **Provisioned resources:**
 
-- VPC `expense-tracker-vpc` with 2 public and 2 private subnets, one NAT gateway
+- VPC `expense-tracker-vpc` with 2 public and 2 private subnets, and one NAT gateway
 - EKS cluster `expense-tracker-eks` (Kubernetes 1.31)
-- Managed node group `main` with 2 `t3.medium` nodes (scales 2 to 4)
+- Managed node group `main` with 2 `t3.medium` nodes, scaling from 2 to 4
 
-**Verified:**
-
-- `terraform init` and `terraform validate` pass.
-- `terraform plan` gives 54 resources to add.
-- `terraform apply` created the VPC and EKS cluster. The cluster reached `ACTIVE`. Both nodes reached `Ready`.
-- `terraform destroy` completed. The Terraform state is empty.
+**Results:** `terraform plan` shows 54 resources to add. `terraform apply` creates the VPC and the EKS cluster. `terraform destroy` removes all resources.
 
 **Screenshots:**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m7-plan.png`] — `terraform plan` output
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m7-console-vpc-eks.png`] — AWS Console: VPC and EKS in `ap-south-1`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m7-destroy.png`] — `terraform destroy` completion
+![m7-plan](docs/screenshots/m7-plan.png)
+
+![m7-console-vpc-eks](docs/screenshots/m7-console-vpc-eks.png)
+
+![m7-destroy](docs/screenshots/m7-destroy.png)
 
 ---
 
@@ -175,74 +158,53 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 **Files:**
 
 - `k8s/namespace.yaml` (namespace `expense-tracker`)
-- `helm/expense-tracker/` (chart with `Chart.yaml`, `values*.yaml`, and templates for the backend, frontend, Postgres, Ingress, HPA and ServiceMonitor)
+- `helm/expense-tracker/` (chart with `Chart.yaml`, `values*.yaml`, and templates for the backend, frontend, PostgreSQL, Ingress, HPA, and ServiceMonitor)
 
-**Ingress:** `/api` routes to the backend Service on port 8000. `/` routes to the frontend Service on port 80.
+**Routing:** The Ingress sends `/api` to the backend Service on port 8000, and `/` to the frontend Service on port 80.
 
-**Verified (minikube):**
-
-- `helm lint` passes.
-- `helm upgrade --install` succeeds. All five pods are `Running`.
-- Through the Ingress: `/api/expenses` creates and reads data, and the stats endpoint returns totals.
-
-**Not verified on EKS:** The Helm deploy to EKS. It needs the cluster and the deploy secret.
+**Environment:** minikube, with the `ingress-nginx` addon. The chart installs with `helm upgrade --install expense-tracker ./helm/expense-tracker -n expense-tracker -f helm/expense-tracker/values-dev.yaml`.
 
 **Screenshots:**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m8-get-pods.png`] — `kubectl get pods -n expense-tracker`, all `Running`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m8-get-svc.png`] — `kubectl get svc -n expense-tracker`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m8-helm-list.png`] — `helm list -n expense-tracker`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m8-browser-ingress.png`] — application through the Ingress hostname
+> **Screenshot pending:** `docs/screenshots/m8-helm-list.png` — `helm list -n expense-tracker`.
+
+> **Screenshot pending:** `docs/screenshots/m8-get-pods.png` — `kubectl get pods -n expense-tracker`, showing all pods `Running`.
+
+> **Screenshot pending:** `docs/screenshots/m8-get-svc.png` — `kubectl get svc -n expense-tracker`.
+
+> **Screenshot pending:** `docs/screenshots/m8-browser-ingress.png` — the application in the browser, through the Ingress at `expense-tracker.local`.
 
 ---
 
 ## M9 — Observability (Prometheus and Grafana)
 
-**Files:** `monitoring/prometheus-values.yaml`. The backend exposes `/metrics`. The chart includes a ServiceMonitor, which turns on when the Prometheus Operator CRD is installed.
+**Files:** `monitoring/prometheus-values.yaml`. The backend exposes `/metrics` with the FastAPI Prometheus instrumentator. The Helm chart includes a ServiceMonitor for the backend.
 
-**Verified (minikube):** `kube-prometheus-stack` is installed in the `monitoring` namespace. The ServiceMonitor is on. Prometheus shows both backend pods as `up`. The Grafana dashboard `ExpenseTracker HTTP` has two live panels: requests per second, and requests per second by handler.
+**Setup:** `kube-prometheus-stack` runs in the `monitoring` namespace. Prometheus scrapes both backend pods. The Grafana dashboard `ExpenseTracker HTTP` shows two panels: requests per second, and requests per second by handler.
 
 **Screenshots:**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m9-metrics.png`] — `curl <backend>/metrics`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m9-prometheus-targets.png`] — Prometheus Targets, application `UP`
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m9-grafana.png`] — Grafana dashboard with live data
+> **Screenshot pending:** `docs/screenshots/m9-metrics.png` — output of `curl <backend>/metrics`.
+
+> **Screenshot pending:** `docs/screenshots/m9-prometheus-targets.png` — Prometheus Targets page, with the backend targets `UP`.
+
+> **Screenshot pending:** `docs/screenshots/m9-grafana.png` — the Grafana dashboard with live data.
 
 ---
 
 ## M10 — Documentation and Live Demo
 
-**README:** `README.md` describes the application, its architecture, and how to run it.
+**README:** `README.md` describes the application, its architecture, the local run steps, and the DevOps pipeline.
 
-**Live demo steps:**
+**Live demo:** Show the change path end to end:
 
 1. Commit a visible change to `main`.
-2. Watch the GitHub Actions run, including the deploy job.
-3. Show the updated deployment in the cluster.
+2. Show the GitHub Actions run passing `test` and `build-scan-push`.
+3. Run `helm upgrade --install` on the cluster with the new image tag.
+4. Show the updated page in the browser.
 
-**Status:** Pending. It needs the cluster running at demo time.
+**Screenshots (optional):**
 
----
+> **Screenshot pending:** `docs/screenshots/m10-demo-pipeline.png` — the Actions run for the demo commit.
 
-## Submission checklist
-
-- [x] Repository URL
-- [x] `docker compose up --build` runs three services
-- [x] At least 4 REST endpoints (9 implemented)
-- [x] Alembic migration file present
-- [x] Pytest passes (7 tests)
-- [x] Backend and frontend Dockerfiles build, as non-root users
-- [x] GitHub Actions workflow on push to `main`
-- [x] Pytest runs in the pipeline
-- [x] Images pushed to GHCR with SHA tags
-- [x] Trivy scan in the pipeline
-- [x] No secrets committed to Git
-- [x] Terraform plan, apply and destroy (VPC and EKS)
-- [ ] `kubectl get pods` screenshot (all Running)
-- [ ] `helm list` screenshot
-- [ ] Application accessible through the Ingress (EKS)
-- [ ] `/metrics` screenshot
-- [ ] Prometheus Targets screenshot (UP)
-- [ ] Grafana dashboard screenshot
-- [x] README present
-- [ ] Live demo or recording
+> **Screenshot pending:** `docs/screenshots/m10-demo-updated.png` — the updated page after the Helm upgrade.
