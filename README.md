@@ -1,5 +1,7 @@
 # Session 21 — DevOps Final Capstone: ExpenseTracker (Python)
 
+> **Submission guide:** See [PROJECT_SUBMISSION.md](PROJECT_SUBMISSION.md). It maps each `GRADING.md` module to its evidence and screenshots.
+
 ## 1. What we are building
 
 ExpenseTracker is a small personal expense tracking application. A user records what they spent, groups each entry into a category (Food, Transport, Bills, Other), and sees totals on a dashboard. The same DevOps layer that runs the app also builds, tests, scans, deploys, and monitors it:
