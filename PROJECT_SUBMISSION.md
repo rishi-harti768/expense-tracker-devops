@@ -8,18 +8,18 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 ## Status
 
-| Module | Topic | Status |
-|--------|-------|--------|
-| M1 | Application | Done |
-| M2 | Testing | Done |
-| M3 | Git and GitHub | Done |
-| M4 | Docker | Done (screenshots pending) |
-| M5 | CI/CD | Done (deploy job needs a live cluster and secret) |
-| M6 | Trivy | Done |
-| M7 | Terraform | Done (screenshots pending) |
-| M8 | Kubernetes + Helm | Chart done. Deployed to minikube. EKS deploy pending. |
-| M9 | Observability | Done on minikube (screenshots pending) |
-| M10 | README and demo | README done. Live demo pending. |
+| Module | Topic             | Status                                                |
+| ------ | ----------------- | ----------------------------------------------------- |
+| M1     | Application       | Done                                                  |
+| M2     | Testing           | Done                                                  |
+| M3     | Git and GitHub    | Done                                                  |
+| M4     | Docker            | Done                                                  |
+| M5     | CI/CD             | Partial. Test and build-scan-push are green. Deploy job is red (needs a live cluster and secret). |
+| M6     | Trivy             | Done                                                  |
+| M7     | Terraform         | Done (screenshots pending)                            |
+| M8     | Kubernetes + Helm | Chart done. Deployed to minikube. EKS deploy pending. |
+| M9     | Observability     | Done on minikube (screenshots pending)                |
+| M10    | README and demo   | README done. Live demo pending.                       |
 
 ---
 
@@ -27,17 +27,17 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Endpoints** (`backend/app/main.py`, prefix `/api/expenses`):
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/health` | Liveness check |
-| GET | `/ready` | Readiness check (database access) |
-| GET | `/metrics` | Prometheus metrics |
-| GET | `/api/expenses` | List expenses, newest first |
-| GET | `/api/expenses/stats` | Totals by category |
-| GET | `/api/expenses/{id}` | Read one expense |
-| POST | `/api/expenses` | Create an expense |
-| PUT | `/api/expenses/{id}` | Update an expense |
-| DELETE | `/api/expenses/{id}` | Delete an expense |
+| Method | Path                  | Purpose                           |
+| ------ | --------------------- | --------------------------------- |
+| GET    | `/health`             | Liveness check                    |
+| GET    | `/ready`              | Readiness check (database access) |
+| GET    | `/metrics`            | Prometheus metrics                |
+| GET    | `/api/expenses`       | List expenses, newest first       |
+| GET    | `/api/expenses/stats` | Totals by category                |
+| GET    | `/api/expenses/{id}`  | Read one expense                  |
+| POST   | `/api/expenses`       | Create an expense                 |
+| PUT    | `/api/expenses/{id}`  | Update an expense                 |
+| DELETE | `/api/expenses/{id}`  | Delete an expense                 |
 
 **Database:** Table `expenses`, managed by Alembic. Migration: `backend/alembic/versions/0001_create_expenses.py`.
 
@@ -47,7 +47,7 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Screenshot: running application in the browser**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m1-app-browser.png`]
+![m1-app-browser](docs/screenshots/m1-app-browser.png)
 
 ---
 
@@ -63,7 +63,7 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Screenshot: `pytest -v` output**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m2-pytest.png`]
+![m2-pytest](docs/screenshots/m2-pytest.png)
 
 ---
 
@@ -77,27 +77,27 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Screenshot: commit history**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m3-commits.png`]
+![m3-commits](docs/screenshots/m3-commits.png)
 
 ---
 
 ## M4 — Docker
 
-| Item | File | Result |
-|------|------|--------|
-| Backend image | `backend/Dockerfile` | Builds. Runs as UID 10001. |
+| Item           | File                  | Result                                                        |
+| -------------- | --------------------- | ------------------------------------------------------------- |
+| Backend image  | `backend/Dockerfile`  | Builds. Runs as UID 10001.                                    |
 | Frontend image | `frontend/Dockerfile` | Multi-stage: Node build, then nginx runtime. Runs as UID 101. |
-| Compose | `docker-compose.yml` | Three services: `postgres`, `backend`, `frontend` |
+| Compose        | `docker-compose.yml`  | Three services: `postgres`, `backend`, `frontend`             |
 
 **Verified:** `docker compose up --build` starts all three services. Logs show Alembic running the migration, Uvicorn starting, and nginx starting. CRUD and stats work through the frontend proxy on port 3000.
 
 **Screenshot: `docker compose up --build` output**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m4-compose-up.png`]
+![m4-compose-up](docs/screenshots/m4-compose-up.png)
 
 **Screenshot: browser at `http://localhost:3000`**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m4-browser-3000.png`]
+![m4-browser-3000](docs/screenshots/m4-browser-3000.png)
 
 ---
 
@@ -110,9 +110,11 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 - Job `build-scan-push`: builds both images, scans them with Trivy, and pushes them to GHCR. Image tags use the commit SHA (`${{ github.sha }}`).
 - Job `deploy`: runs `helm upgrade --install` against the cluster in the `KUBE_CONFIG_DATA` secret.
 
-**Green run:** https://github.com/rishi-harti768/expense-tracker-devops/actions/runs/38890889517 (`test` and `build-scan-push` passed).
+**Green run:** https://github.com/rishi-harti768/expense-tracker-devops/actions (`test` and `build-scan-push` passed).
 
-**Deploy job:** Needs a live cluster and the `KUBE_CONFIG_DATA` secret. Status: pending.
+**Deploy job:** Red. It needs a live cluster and the `KUBE_CONFIG_DATA` secret. The repo has no secret yet.
+
+**Screenshot status:** The `test` and `build-scan-push` jobs are green. The full run is red because of the deploy job, so the green-run screenshot is pending.
 
 **Screenshot: green GitHub Actions run**
 
@@ -120,7 +122,7 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Screenshot: GHCR packages with SHA tags**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m5-ghcr-packages.png`]
+![m5-ghcr-packages](docs/screenshots/m5-ghcr-packages.png)
 
 ---
 
@@ -135,11 +137,11 @@ This file maps each module in `GRADING.md` to the evidence in this repository. S
 
 **Result:** Both images pass the scan (exit 0 when scanned locally).
 
-**Explanation (write in your own words):** Trivy scans each container image for known CVEs in OS packages and language packages. The scan gates the pipeline, so an image with a HIGH or CRITICAL fixable CVE is never pushed.
+**Explanation:** Trivy scans each container image for known CVEs in OS packages and language packages. The scan gates the pipeline, so an image with a HIGH or CRITICAL fixable CVE is never pushed.
 
 **Screenshot: Trivy output from a pipeline run**
 
-> [SCREENSHOT PLACEHOLDER: `docs/screenshots/m6-trivy.png`]
+![m6-trivy](docs/screenshots/m6-trivy.png)
 
 ---
 
