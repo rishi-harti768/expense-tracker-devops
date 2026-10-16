@@ -200,9 +200,3 @@ The pipeline ends after `build-scan-push`. Deployment to the cluster is manual, 
 2. Show the GitHub Actions run passing `test` and `build-scan-push`.
 3. Run `helm upgrade --install` on the cluster with the new image tag.
 4. Show the updated page in the browser.
-
-**Screenshots (optional):**
-
-> **Screenshot pending:** `docs/screenshots/m10-demo-pipeline.png` — the Actions run for the demo commit.
-
-> **Screenshot pending:** `docs/screenshots/m10-demo-updated.png` — the updated page after the Helm upgrade.
